@@ -1859,9 +1859,9 @@ dependencies = [
  "rand 0.7.3",
  "serde",
  "serde_yaml",
- "sif",
  "strum",
  "strum_macros",
+ "test-case",
  "twang",
  "wav",
  "winit",
@@ -1987,26 +1987,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "29e0a6006cf04d568a49363baca3dabddbbe46538f7c76692d405f5f5d140ecd"
 dependencies = [
  "num-traits 0.1.43",
-]
-
-[[package]]
-name = "sif"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f63ec563107b37d8c4326ccda261ba085dd95ecaaa8d2854b30b54dbe3caf9f"
-dependencies = [
- "sif_macro",
-]
-
-[[package]]
-name = "sif_macro"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "632555718692f7bdfe1b34897e79a6b66f7001d8d43be7acadc719a83792c85c"
-dependencies = [
- "proc-macro2 1.0.19",
- "quote 1.0.7",
- "syn 1.0.35",
 ]
 
 [[package]]
@@ -2187,6 +2167,18 @@ checksum = "15f2b5fb00ccdf689e0149d1b1b3c03fead81c2b37735d812fa8bddbbf41b6d8"
 dependencies = [
  "rand 0.4.6",
  "remove_dir_all",
+]
+
+[[package]]
+name = "test-case"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "199464148b42bcf3da8b2a56f6ee87ca68f47402496d1268849291ec9fb463c8"
+dependencies = [
+ "proc-macro2 1.0.19",
+ "quote 1.0.7",
+ "syn 1.0.35",
+ "version_check",
 ]
 
 [[package]]
