@@ -1,0 +1,54 @@
+---
+hz: 1024
+beep_frequency: 440.0
+rom: roms/INVADERS
+log_level: TRACE
+
+general_key_mapping:
+    restart_vm: R
+
+default_key_mapping:
+    Key3: 3
+    Key8: 8
+    Key0: 0
+    C: 12
+    F: 15
+    Key4: 4
+    Key7: 7
+    B: 11
+    E: 14
+    A: 10
+    Key9: 9
+    Key1: 1
+    Key2: 2
+    Key5: 5
+    D: 13
+    Key6: 6
+
+rom_key_mappings:
+    PONG2:
+        W: 1
+        S: 4
+        Up: 0xC
+        Down: 0xD
+    BRIX:
+        Left: 4
+        Right: 6
+    BLITZ:
+        Space: 5
+    INVADERS:
+        Space: 5
+        A: 4
+        D: 6
+
+debugger:
+    # Note: enabling the debugger will progressively increase memory consumption
+    enable: true
+
+    key_mapping:
+        toggle_break: F1
+        step_previous: F2
+        step_next: F3
+        print_registers: F4
+        print_stack: F5
+        print_timers: F6

@@ -12,6 +12,18 @@
 			  "kind": "build",
 			  "isDefault": true
 			}
+        },
+        {
+            "label": "tests",
+			"type": "shell",
+			"command": "cargo test",
+			"options": {
+			  "cwd": "${workspaceRoot}"
+			},
+			"group": {
+                "kind": "test",
+                "isDefault": true
+              }
 		},
 	]
 }

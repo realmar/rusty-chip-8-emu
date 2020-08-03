@@ -7,3 +7,18 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+winit = { version = "0.19.3", features = ["serde"] }
+ggez = "0.5"
+rand = "0.7.3"
+twang = "0.2.0"
+wav = "0.4.0"
+serde = { version = "1.0.114", features = ["derive"] }
+serde_yaml = "0.8.13"
+strum = "0.18.0"
+strum_macros = "0.18.0"
+log = { version = "0.4.11", features = ["serde"] }
+flexi_logger = "0.15.10"
+cfg-if = "0.1.10"
+
+[dev-dependencies]
+sif = "0.1.0"
