@@ -18,7 +18,7 @@ jobs:
 
     steps:
         - name: Install SDL2
-          run: apt-get install libsdl2-dev
+          run: sudo apt-get install libsdl2-dev
         - uses: actions/checkout@v2
         - name: Build
           run: cargo build --verbose --release
