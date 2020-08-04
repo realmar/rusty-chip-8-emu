@@ -1,7 +1,27 @@
-Rusty CHIP8 Emulator
---------------------
+Rusty CHIP-8  Emulator
+----------------------
 
 CHIP-8 emulator written in Rust.
+
+ - Configurable using `config.yml`
+   - Emulator Speed
+   - Screen Scaling
+   - Custom key-mappings, configurable per ROM
+     - [See here for keycode names](https://docs.rs/ggez/0.3.3/ggez/event/enum.Keycode.html)
+ - Hot reload emulator with new config (hz, rom, etc.)
+   - Default key: `R`
+ - Simple Debugger
+   - Pause
+   - Step back and forth
+ - Instruction Logging (set log level to `TRACE`)
+
+### Invaders
+
+![INVADERS](images/INVADERS.gif)
+
+### BRIX
+
+![BRIX](images/BRIX.gif)
 
 ### Sources
 
