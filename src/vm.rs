@@ -151,7 +151,6 @@ impl Vm {
                 memory[n] = FONTS[n];
             }
 
-            let emu_speed = config.hz;
             let mut frames = Vec::with_capacity(match debugger.enabled {
                 true => 1024 * 1024,
                 false => 1,
@@ -169,13 +168,17 @@ impl Vm {
 
                 tick_timer: 0,
                 tick_duration: {
-                    let nano_1_sec = u128::pow(10, 9);
-                    let multiplicator = emu_speed as f64 / VM_ORIGINAL_HZ as f64;
+                    if config.hz == 0 {
+                        0
+                    } else {
+                        let nano_1_sec = u128::pow(10, 9);
+                        let multiplicator = config.hz as f64 / VM_ORIGINAL_HZ as f64;
 
-                    let ticks_per_seconds = VM_ORIGINAL_HZ;
-                    let tick_duration_original = nano_1_sec / ticks_per_seconds;
+                        let ticks_per_seconds = VM_ORIGINAL_HZ;
+                        let tick_duration_original = nano_1_sec / ticks_per_seconds;
 
-                    (tick_duration_original as f64 / multiplicator) as u128
+                        (tick_duration_original as f64 / multiplicator) as u128
+                    }
                 },
 
                 frames,

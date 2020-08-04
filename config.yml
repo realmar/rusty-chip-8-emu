@@ -1,8 +1,10 @@
 ---
+# hz = 0 will let the emu run as fast as possible, note that the rendering loop
+# will be slower than the VM, so frame tearing is guaranteed
 hz: 1024
 beep_frequency: 440.0
 rom: roms/INVADERS
-log_level: TRACE
+log_level: INFO
 
 general_key_mapping:
     restart_vm: R
@@ -37,13 +39,24 @@ rom_key_mappings:
     BLITZ:
         Space: 5
     INVADERS:
-        Space: 5
-        A: 4
-        D: 6
+        Space: 5    # shoot
+        A: 4        # left
+        D: 6        # right
+    VBRIX:
+        W: 1        # up
+        S: 4        # down
+        Space: 7    # start
+    TANK:
+        Down: 2
+        Left: 4
+        Right: 6
+        Up: 8
+        Space: 5    # shoot
 
 debugger:
     # Note: enabling the debugger will progressively increase memory consumption
-    enable: true
+    # Warning: do not enable this if you set hz to 0 because it will consume GBs of memory within seconds
+    enable: false
 
     key_mapping:
         toggle_break: F1
