@@ -979,6 +979,7 @@ mod tests {
         d.vm.execute(&mut d.frame, OpCode::Sound_Set { x: 0 }).unwrap();
 
         assert_eq!(d.frame.sound_timer, 8);
+        assert_eq!(d.vm.audio.lock().unwrap().playing, true);
     }
 
     #[test]

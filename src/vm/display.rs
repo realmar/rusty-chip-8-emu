@@ -73,3 +73,30 @@ pub enum DisplayState {
     Changed,
     Unchanged,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rand;
+
+    fn new() -> VmDisplay {
+        VmDisplay::new()
+    }
+
+    #[test]
+    fn clear() {
+        let mut d = new();
+
+        for p in d.screen.iter_mut() {
+            *p = rand::random::<u8>();
+        }
+
+        println!("{}", d.screen[0]);
+
+        d.clear();
+
+        for p in &d.screen {
+            assert_eq!(*p, 0);
+        }
+    }
+}
