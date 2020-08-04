@@ -33,6 +33,11 @@ rom_key_mappings:
         S: 4
         Up: 0xC
         Down: 0xD
+    PONG0:
+        W: 1
+        S: 4
+        Up: 0xC
+        Down: 0xD
     BRIX:
         Left: 4
         Right: 6
@@ -55,10 +60,13 @@ rom_key_mappings:
     TETRIS:
         Left: 5
         Right: 6
-        Space: 4    # rotate
+        Down: 7    # fast down
+        Up: 4      # rotate
     WIPEOFF:
         Left: 4
         Right: 6
+    MISSILE:
+        Space: 8   # shoot
 
 debugger:
     # Note: enabling the debugger will progressively increase memory consumption

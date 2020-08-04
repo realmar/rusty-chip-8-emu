@@ -125,20 +125,13 @@ struct Emulator {
 
 impl Emulator {
     pub fn new(_ctx: &mut Context, config: Config) -> Emulator {
-        let sound_bytes = match vm::audio::sample(config.beep_frequency) {
-            Ok(waveform) => waveform,
-            Err(msg) => panic!("ERROR while generating sound waveform: {}", msg),
-        };
         let (input, runner) = Emulator::create_runner(&config);
-        let beep =
-            audio::Source::from_data(_ctx, audio::SoundData::from_bytes(sound_bytes.as_slice()))
-                .unwrap();
 
         Emulator {
+            beep: Emulator::create_beep(&config, _ctx),
             config,
             input,
             runner,
-            beep,
         }
     }
 
@@ -152,10 +145,20 @@ impl Emulator {
         (input, runner)
     }
 
-    fn reset(&mut self) {
+     fn create_beep(config: &Config, ctx: &mut Context) -> audio::Source {
+        let sound_bytes = match vm::audio::sample(config.beep_frequency) {
+            Ok(waveform) => waveform,
+            Err(msg) => panic!("ERROR while generating sound waveform: {}", msg),
+        };
+
+        audio::Source::from_data(ctx, audio::SoundData::from_bytes(sound_bytes.as_slice())).unwrap()
+     }
+
+    fn reset(&mut self, ctx: &mut Context) {
         let config = Config::load().unwrap();
         let (input, runner) = Emulator::create_runner(&config);
 
+        self.beep = Emulator::create_beep(&config, ctx);
         self.config = config;
         self.input = input;
         self.runner = runner;
@@ -239,7 +242,7 @@ impl EventHandler for Emulator {
         let no_shift = (_keymods & KeyMods::SHIFT) != KeyMods::SHIFT;
 
         if _keycode == self.config.general_key_mapping.restart_vm {
-            self.reset()
+            self.reset(_ctx);
         }
 
         if self.config.debugger.enable {
