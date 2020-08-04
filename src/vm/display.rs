@@ -1,33 +1,46 @@
+#[cfg(test)]
+use mockall::automock;
 use super::constants::*;
 
 pub type RawScreen = [u8; SCREEN_SIZE];
 
-pub struct Display {
+pub struct VmDisplay {
     screen: RawScreen,
 }
 
-impl Display {
-    pub fn new() -> Display {
-        Display {
+#[cfg_attr(test, automock)]
+pub trait Display : Send {
+    fn get_screen(&self) -> &RawScreen;
+    fn set_screen(&mut self, screen: &RawScreen);
+    fn clear(&mut self);
+    fn draw_sprite(&mut self, x: usize, y: usize, height: u8, data: &[u8]) -> DisplayState;
+    fn get_pixel(&self, x: usize, y: usize) -> u8;
+}
+
+impl VmDisplay {
+    pub fn new() -> VmDisplay {
+        VmDisplay {
             screen: [0; SCREEN_SIZE],
         }
     }
+}
 
-    pub(super) fn get_screen(&self) -> &RawScreen {
+impl Display for  VmDisplay {
+    fn get_screen(&self) -> &RawScreen {
         &self.screen
     }
 
-    pub(super) fn set_screen(&mut self, screen: &RawScreen) {
+    fn set_screen(&mut self, screen: &RawScreen) {
         self.screen = screen.clone();
     }
 
-    pub(super) fn clear(&mut self) {
+    fn clear(&mut self) {
         for n in 0..self.screen.len() {
             self.screen[n] = 0;
         }
     }
 
-    pub(super) fn draw_sprite(&mut self, x: usize, y: usize, height: u8, data: &[u8]) -> DisplayState {
+    fn draw_sprite(&mut self, x: usize, y: usize, height: u8, data: &[u8]) -> DisplayState {
         let mut state = DisplayState::Unchanged;
 
         for sprite_y in 0..height as usize {
@@ -51,7 +64,7 @@ impl Display {
         state
     }
 
-    pub fn get_pixel(&self, x: usize, y: usize) -> u8 {
+    fn get_pixel(&self, x: usize, y: usize) -> u8 {
         self.screen[x + y * SCREEN_SIZE_X]
     }
 }

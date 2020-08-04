@@ -9,13 +9,13 @@ use std::fs;
 use log::{info, warn, error};
 
 use super::vm::audio::Audio;
-use super::vm::display::Display;
+use super::vm::display::{ Display, VmDisplay };
 use super::vm::input::Input;
 use super::vm::config::Config;
 use super::vm::{Vm, Debugger, DebuggerCommand};
 
 pub struct Runner {
-    display: Arc<Mutex<Display>>,
+    display: Arc<Mutex<dyn Display>>,
     audio: Arc<Mutex<Audio>>,
     alive: Arc<AtomicBool>,
 
@@ -32,7 +32,7 @@ impl Runner {
             Err(..) => return Err(format!("Cannot load ROM {}", config.rom)),
         };
 
-        let display = Arc::new(Mutex::new(Display::new()));
+        let display = Arc::new(Mutex::new(VmDisplay::new()));
         let audio = Arc::new(Mutex::new(Audio::new()));
         let alive = Arc::new(AtomicBool::new(true));
 

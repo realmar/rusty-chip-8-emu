@@ -37,6 +37,7 @@ const ROM_SIZE: usize = MEMORY_SIZE - VM_RESERVED_BEGIN - VM_RESERVED_END;
 const REGISTER_COUNT: usize = 16;
 
 const PC_INCREMENT: u16 = 2;
+const PC_START: u16 = VM_INTERPRETER_SIZE as u16;
 
 #[derive(Display, Debug)]
 pub enum DebuggerCommand {
@@ -89,7 +90,7 @@ impl VmFrame {
             registers: [0u8; REGISTER_COUNT],
             stack: Vec::with_capacity(16),
             memory: [0u8; MEMORY_SIZE],
-            PC: 512,
+            PC: PC_START,
             I: 0,
 
             delay_timer: 0,
@@ -106,7 +107,7 @@ struct StackFrame {
 }
 
 pub struct Vm {
-    display:        Arc<Mutex<Display>>,
+    display:        Arc<Mutex<dyn Display>>,
     input:          Arc<Mutex<dyn Input>>,
     audio:          Arc<Mutex<Audio>>,
 
@@ -123,7 +124,7 @@ impl Vm {
     pub fn new(
         config: &Config,
         rom: &Vec<u8>,
-        display: Arc<Mutex<Display>>,
+        display: Arc<Mutex<dyn Display>>,
         input: Arc<Mutex<dyn Input>>,
         audio: Arc<Mutex<Audio>>,
         debugger: Debugger) -> Result<Vm, String> {
@@ -465,8 +466,8 @@ impl Vm {
             OpCode::BitOp_Or { x, y }               => frame.registers[x] |= frame.registers[y],
             OpCode::BitOp_And { x, y }              => frame.registers[x] &= frame.registers[y],
             OpCode::BitOp_Xor { x, y }              => frame.registers[x] ^= frame.registers[y],
-            OpCode::BitOp_Shift_Right { x, y }      => self.op_right_shift(frame, x, y),
-            OpCode::BitOp_Shift_Left { x, y }       => self.op_left_shift(frame, x, y),
+            OpCode::BitOp_Shift_Right { x, y }      => self.op_right_shift(frame, y, x),
+            OpCode::BitOp_Shift_Left { x, y }       => self.op_left_shift(frame, y, x),
 
             OpCode::Math_Add { x, y }               => self.op_math_add(frame, x, y, x),
             OpCode::Math_Minus { x, y }             => self.op_math_minus(frame, x, y, x),
@@ -623,7 +624,7 @@ impl Vm {
         let tens = (data / 10 ) % 10;
         let ones = (data % 100) % 10;
 
-        frame.memory[frame.I as usize] = hundreds;
+        frame.memory[(frame.I + 0) as usize] = hundreds;
         frame.memory[(frame.I + 1) as usize] = tens;
         frame.memory[(frame.I + 2) as usize] = ones;
     }
@@ -658,37 +659,41 @@ impl Vm {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::display::MockDisplay;
+    use super::input::MockInput;
+    use mockall::*;
     use test_case::test_case;
-
-    struct MockInput;
-
-    impl Input for MockInput {
-        fn is_pressed(&self, _: u8) -> bool { false }
-        fn get_pressed_key(&self) -> Option<u8> { None }
-    }
 
     #[allow(dead_code)]
     struct TestData {
         tx: mpsc::Sender::<DebuggerCommand>,
         vm: Vm,
         frame: VmFrame,
+
+        display:   Arc<Mutex<MockDisplay>>,
+        input:     Arc<Mutex<MockInput>>,
     }
 
     fn new() -> TestData {
         let config = Config::default();
         let (tx, rx) = mpsc::channel::<DebuggerCommand>();
 
+        let display = Arc::new(Mutex::new(MockDisplay::new()));
+        let input = Arc::new(Mutex::new(MockInput::new()));
+
         TestData {
             tx,
             vm: Vm::new(
                 &config,
                 &vec![0, 0],
-                Arc::new(Mutex::new(Display::new())),
-                Arc::new(Mutex::new(MockInput)),
+                display.clone(),
+                input.clone(),
                 Arc::new(Mutex::new(Audio::new())),
                 Debugger::new(&config, Arc::new(AtomicBool::new(false)), rx))
             .unwrap(),
             frame: VmFrame::new(),
+            display,
+            input,
         }
     }
 
@@ -733,5 +738,326 @@ mod tests {
         let actual = vm.decode(code);
 
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn op_disp_clear() {
+        let mut d = new();
+
+        {
+            let mut screen = d.display.lock().unwrap();
+            screen
+                .expect_clear()
+                .times(1)
+                .return_const(());
+        }
+
+        d.vm.execute(&mut d.frame, OpCode::Disp_Clear).unwrap();
+    }
+
+    #[test]
+    fn op_flow_call_return() {
+        let mut d = new();
+        d.frame.PC = 789;
+
+        d.vm.execute(&mut d.frame, OpCode::Flow_Call { nnn: 123 }).unwrap();
+
+        assert_eq!(d.frame.PC, 123);
+        assert_eq!(d.frame.stack.len(), 1);
+        assert_eq!(d.frame.stack[0].return_address, 789);
+
+        d.vm.execute(&mut d.frame, OpCode::Flow_Return).unwrap();
+
+        assert_eq!(d.frame.PC, 789 + 2);
+        assert_eq!(d.frame.stack.len(), 0);
+    }
+
+    #[test]
+    fn op_jump() {
+        let mut d = new();
+
+        d.vm.execute(&mut d.frame, OpCode::Flow_Jump { nnn: 123 }).unwrap();
+
+        assert_eq!(d.frame.PC, 123);
+    }
+
+    // Cond_Eq
+    #[test_case(12, OpCode::Cond_Eq_Const { x: 2, nn: 12 }, PC_START + 4 ; "const eq do jump")]
+    #[test_case(12, OpCode::Cond_Eq_Const { x: 2, nn: 8  }, PC_START + 2 ; "const eq do not jump")]
+    // Cond_Neq
+    #[test_case(12, OpCode::Cond_Neq_Const { x: 2, nn: 12 }, PC_START + 2 ; "const neq do jump")]
+    #[test_case(12, OpCode::Cond_Neq_Const { x: 2, nn: 8  }, PC_START + 4 ; "const neq do not jump")]
+    fn op_cond_const(reg_nn: u8, opcode: OpCode, pc: u16) {
+        let mut d = new();
+        d.frame.registers[2] = reg_nn;
+
+        d.vm.execute(&mut d.frame, opcode).unwrap();
+
+        assert_eq!(d.frame.PC, pc);
+    }
+
+    // Cond_Eq
+    #[test_case(2, 2, OpCode::Cond_Eq_Reg { x: 0, y: 1 }, PC_START + 4 ; "eq do jump")]
+    #[test_case(2, 8, OpCode::Cond_Eq_Reg { x: 0, y: 1 }, PC_START + 2 ; "eq do not jump")]
+    // Cond_Neq
+    #[test_case(2, 2, OpCode::Cond_Neq_Reg { x: 0, y: 1 }, PC_START + 2 ; "neq do jump")]
+    #[test_case(2, 8, OpCode::Cond_Neq_Reg { x: 0, y: 1 }, PC_START + 4 ; "neq do not jump")]
+    fn op_cond_reg(val1: u8, val2: u8, opcode: OpCode, pc: u16) {
+        let mut d = new();
+        d.frame.registers[0] = val1;
+        d.frame.registers[1] = val2;
+
+        d.vm.execute(&mut d.frame, opcode).unwrap();
+
+        assert_eq!(d.frame.PC, pc);
+    }
+
+    #[test]
+    fn op_const_set_reg() {
+        let mut d = new();
+
+        d.vm.execute(&mut d.frame, OpCode::Const_Set_Reg { x: 0, nn: 12 }).unwrap();
+
+        assert_eq!(d.frame.registers[0], 12);
+    }
+
+    #[test]
+    fn op_const_add_reg() {
+        let mut d = new();
+        d.frame.registers[0] = 8;
+
+        d.vm.execute(&mut d.frame, OpCode::Const_Add_Reg { x: 0, nn: 16 }).unwrap();
+
+        assert_eq!(d.frame.registers[0], 8 + 16);
+    }
+
+    #[test]
+    fn op_assign() {
+        let mut d = new();
+        d.frame.registers[1] = 8;
+
+        assert_eq!(d.frame.registers[0], 0);
+
+        d.vm.execute(&mut d.frame, OpCode::Assign { x: 0, y: 1 }).unwrap();
+
+        assert_eq!(d.frame.registers[0], 8);
+    }
+
+    // BitOpt
+    #[test_case(0xA, 0xB, 0xA | 0xB, None, OpCode::BitOp_Or { x: 0, y: 1 } ; "BitOp_Or")]
+    #[test_case(0xA, 0xB, 0xA & 0xB, None, OpCode::BitOp_And { x: 0, y: 1 } ; "BitOp_And")]
+    #[test_case(0xA, 0xB, 0xA ^ 0xB, None, OpCode::BitOp_Xor { x: 0, y: 1 } ; "BitOp_Xor")]
+
+    #[test_case(127, 0xFF, 0xFF >> 1, Some(1), OpCode::BitOp_Shift_Right { x: 0, y: 1 } ; "BitOp_Shift_Right 0xFF")]
+    #[test_case(5,   0xA,  0xA  >> 1, Some(0), OpCode::BitOp_Shift_Right { x: 0, y: 1 } ; "BitOp_Shift_Right 0xA")]
+    #[test_case(254, 0xFF, 0xFF << 1, Some(1), OpCode::BitOp_Shift_Left { x: 0, y: 1 } ; "BitOp_Shift_Left 0xFF")]
+    #[test_case(22,  0xB,  0xB  << 1, Some(0), OpCode::BitOp_Shift_Left { x: 0, y: 1 } ; "BitOp_Shift_Left 0xB")]
+
+    // Math
+    #[test_case(2, 8, 2 + 8, Some(0), OpCode::Math_Add { x: 0, y: 1 } ; "Math_Add no carry")]
+    #[test_case(255, 8, 7,   Some(1), OpCode::Math_Add { x: 0, y: 1 } ; "Math_Add carry")]
+
+    #[test_case(8, 2, 8 - 2, Some(1), OpCode::Math_Minus { x: 0, y: 1 } ; "Math_Minus no borrow")]
+    #[test_case(2, 8, 250,   Some(0), OpCode::Math_Minus { x: 0, y: 1 } ; "Math_Minus borrow")]
+
+    #[test_case(2, 8, 8 - 2, Some(1), OpCode::Math_Minus_Reverse { x: 0, y: 1 } ; "Math_Minus_Reverse no borrow")]
+    #[test_case(8, 2, 250,   Some(0), OpCode::Math_Minus_Reverse { x: 0, y: 1 } ; "Math_Minus_Reverse borrow")]
+    fn op_bitop_math(val1: u8, val2: u8, result: u8, vf: Option<u8>, opcode: OpCode) {
+        let mut d = new();
+        d.frame.registers[0] = val1;
+        d.frame.registers[1] = val2;
+
+        d.vm.execute(&mut d.frame, opcode).unwrap();
+
+        assert_eq!(d.frame.registers[0], result);
+
+        if let Some(v) = vf {
+            assert_eq!(d.frame.registers[0xF], v);
+        }
+    }
+
+    #[test_case(None, PC_START ; "nothing pressed")]
+    #[test_case(Some(0), PC_START + 2 ; "key pressed")]
+    fn op_await_key(key: Option<u8>, pc: u16) {
+        let mut d = new();
+
+        {
+            let mut input = d.input.lock().unwrap();
+            input.expect_get_pressed_key()
+                .times(1)
+                .return_const(key);
+        }
+
+        d.vm.execute(&mut d.frame, OpCode::KeyOp_Await { x: 0 }).unwrap();
+
+        assert_eq!(d.frame.PC, pc);
+    }
+
+    #[test_case(0, false, PC_START + 2, OpCode::KeyOp_Skip_Pressed { x: 0 } ; "KeyOp_Skip_Pressed noskip")]
+    #[test_case(0, true,  PC_START + 4, OpCode::KeyOp_Skip_Pressed { x: 0 } ; "KeyOp_Skip_Pressed skip")]
+    #[test_case(0, false, PC_START + 4, OpCode::KeyOp_Skip_Not_Pressed { x: 0 } ; "KeyOp_Skip_Not_Pressed skip")]
+    #[test_case(0, true,  PC_START + 2, OpCode::KeyOp_Skip_Not_Pressed { x: 0 } ; "KeyOp_Skip_Not_Pressed noskip")]
+    fn op_key_press_skip(key: u8, is_pressed: bool, pc: u16, opcode: OpCode) {
+        let mut d = new();
+
+        d.frame.registers[0] = key;
+        {
+            let mut input = d.input.lock().unwrap();
+            input.expect_is_pressed()
+                .with(predicate::eq(key))
+                .times(1)
+                .return_const(is_pressed);
+        }
+
+        d.vm.execute(&mut d.frame, opcode).unwrap();
+
+        assert_eq!(d.frame.PC, pc);
+    }
+
+    #[test]
+    fn op_rand() {
+        let mut d = new();
+
+        d.vm.execute(&mut d.frame, OpCode::Rand { x: 0 , nn: 0xAB }).unwrap();
+
+        assert_ne!(d.frame.registers[0], 0);
+    }
+
+    #[test_case(255, 0b0010, 0b0101, 0b0101)]
+    #[test_case(0,   0b0000, 0b0000, 0b0000)]
+    #[test_case(1,   0b0000, 0b0000, 0b0001)]
+    #[test_case(23,  0b0000, 0b0010, 0b0011)]
+    #[test_case(100, 0b0001, 0b0000, 0b0000)]
+    #[test_case(38,  0b0000, 0b0011, 0b1000)]
+    fn op_bcd(data: u8, hunderts: u8, tens: u8, ones: u8) {
+        let mut d = new();
+        d.frame.registers[0] = data;
+
+        d.vm.execute(&mut d.frame, OpCode::BCD { x: 0 }).unwrap();
+
+        assert_eq!(d.frame.memory[(d.frame.I + 0) as usize], hunderts);
+        assert_eq!(d.frame.memory[(d.frame.I + 1) as usize], tens);
+        assert_eq!(d.frame.memory[(d.frame.I + 2) as usize], ones);
+    }
+
+    #[test]
+    fn op_timer_delay_get() {
+        let mut d = new();
+        d.frame.delay_timer = 8;
+
+        d.vm.execute(&mut d.frame, OpCode::Timer_Delay_Get { x: 0 }).unwrap();
+
+        assert_eq!(d.frame.registers[0], 8);
+    }
+
+    #[test]
+    fn op_timer_delay_set() {
+        let mut d = new();
+        d.frame.registers[0] = 8;
+
+        d.vm.execute(&mut d.frame, OpCode::Timer_Delay_Set { x: 0 }).unwrap();
+
+        assert_eq!(d.frame.delay_timer, 8);
+    }
+
+    #[test]
+    fn op_sound_set() {
+        let mut d = new();
+        d.frame.registers[0] = 8;
+
+        d.vm.execute(&mut d.frame, OpCode::Sound_Set { x: 0 }).unwrap();
+
+        assert_eq!(d.frame.sound_timer, 8);
+    }
+
+    #[test]
+    fn op_mem_set_i() {
+        let mut d = new();
+
+        d.vm.execute(&mut d.frame, OpCode::MEM_Set_I { nnn: 123 }).unwrap();
+
+        assert_eq!(d.frame.I, 123);
+    }
+
+    #[test]
+    fn op_mem_add_i() {
+        let mut d = new();
+        d.frame.I = 8;
+        d.frame.registers[0] = 123;
+
+        d.vm.execute(&mut d.frame, OpCode::MEM_Add_I { x: 0 }).unwrap();
+
+        assert_eq!(d.frame.I, 8 + 123);
+    }
+
+    #[test_case(0)]
+    #[test_case(1)]
+    #[test_case(8)]
+    #[test_case(12)]
+    #[test_case(14)]
+    #[test_case(REGISTER_COUNT - 1)]
+    fn op_mem_reg_dump(vx: usize) {
+        let mut d = new();
+        for n in 1..REGISTER_COUNT + 1 {
+            d.frame.registers[n - 1] = n as u8;
+        }
+
+        d.vm.execute(&mut d.frame, OpCode::MEM_Reg_Dump { x: vx }).unwrap();
+
+        assert_eq!(d.frame.I, vx as u16 + 1);
+
+        d.frame.I = 0;
+
+        for n in 0..vx + 1 {
+            assert_eq!(d.frame.memory[d.frame.I as usize + n], d.frame.registers[n])
+        }
+    }
+
+    #[test_case(0)]
+    #[test_case(1)]
+    #[test_case(8)]
+    #[test_case(12)]
+    #[test_case(14)]
+    #[test_case(REGISTER_COUNT - 1)]
+    fn op_mem_reg_load(vx: usize) {
+        let mut d = new();
+
+        for n in 1..REGISTER_COUNT + 1 {
+            d.frame.memory[d.frame.I as usize + n - 1] = n as u8;
+        }
+
+        d.vm.execute(&mut d.frame, OpCode::MEM_Reg_Load { x: vx }).unwrap();
+
+        assert_eq!(d.frame.I, vx as u16 + 1);
+
+        d.frame.I = 0;
+
+        for n in 0..vx + 1 {
+            assert_eq!(d.frame.registers[n], d.frame.memory[d.frame.I as usize + n]);
+        }
+    }
+
+    #[test_case(0x0, 0x0 * FONT_SYMBOL_SIZE as u16)]
+    #[test_case(0x1, 0x1 * FONT_SYMBOL_SIZE as u16)]
+    #[test_case(0x2, 0x2 * FONT_SYMBOL_SIZE as u16)]
+    #[test_case(0x3, 0x3 * FONT_SYMBOL_SIZE as u16)]
+    #[test_case(0x4, 0x4 * FONT_SYMBOL_SIZE as u16)]
+    #[test_case(0x5, 0x5 * FONT_SYMBOL_SIZE as u16)]
+    #[test_case(0x6, 0x6 * FONT_SYMBOL_SIZE as u16)]
+    #[test_case(0x7, 0x7 * FONT_SYMBOL_SIZE as u16)]
+    #[test_case(0x8, 0x8 * FONT_SYMBOL_SIZE as u16)]
+    #[test_case(0x9, 0x9 * FONT_SYMBOL_SIZE as u16)]
+    #[test_case(0xB, 0xB * FONT_SYMBOL_SIZE as u16)]
+    #[test_case(0xC, 0xC * FONT_SYMBOL_SIZE as u16)]
+    #[test_case(0xD, 0xD * FONT_SYMBOL_SIZE as u16)]
+    #[test_case(0xE, 0xE * FONT_SYMBOL_SIZE as u16)]
+    #[test_case(0xF, 0xF * FONT_SYMBOL_SIZE as u16)]
+    fn op_mem_set_sprite_i(symbol: u8, address: u16) {
+        let mut d = new();
+        d.frame.registers[0] = symbol;
+
+        d.vm.execute(&mut d.frame, OpCode::MEM_Set_Sprite_I { x: 0 }).unwrap();
+
+        assert_eq!(d.frame.I, address);
     }
 }
