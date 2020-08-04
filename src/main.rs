@@ -1,3 +1,4 @@
+#![feature(const_int_pow)]
 #![cfg_attr(test, feature(proc_macro_hygiene))]
 
 mod runner;

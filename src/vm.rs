@@ -42,6 +42,8 @@ const REGISTER_COUNT: usize = 16;
 const PC_INCREMENT: u16 = 2;
 const PC_START: u16 = VM_INTERPRETER_SIZE as u16;
 
+const TIMER_DURATION_NANO: u128 = u128::pow(10, 9) / VM_ORIGINAL_HZ;
+
 #[cfg_attr(test, mockable)]
 fn get_random() -> u8 {
     rand::random::<u8>()
@@ -78,6 +80,27 @@ type VmStack = Vec<StackFrame>;
 type VmMemory = [u8; MEMORY_SIZE];
 
 #[derive(Clone)]
+struct Timer(u128);
+
+impl Timer {
+    fn get_scaled(&self) -> u8 {
+        (self.0 / TIMER_DURATION_NANO) as u8
+    }
+
+    fn set_scaled(&mut self, value: u8) {
+        self.0 = value as u128 * TIMER_DURATION_NANO;
+    }
+
+    fn get(&self) -> u128 {
+        self.0
+    }
+
+    fn get_mut(&mut self) -> &mut u128 {
+        &mut self.0
+    }
+}
+
+#[derive(Clone)]
 #[allow(non_snake_case)]
 struct VmFrame {
     registers:      VmRegisters,
@@ -86,8 +109,8 @@ struct VmFrame {
     PC:             u16,
     I:              u16,
 
-    delay_timer:    u8,
-    sound_timer:    u8,
+    delay_timer:    Timer,
+    sound_timer:    Timer,
 
     screen:         RawScreen,
 }
@@ -101,8 +124,8 @@ impl VmFrame {
             PC: PC_START,
             I: 0,
 
-            delay_timer: 0,
-            sound_timer: 0,
+            delay_timer: Timer(0),
+            sound_timer: Timer(0),
 
             screen: [0; SCREEN_SIZE],
         }
@@ -206,14 +229,21 @@ impl Vm {
             if execute_cycle {
                 let mut frame = self.next_frame();
 
-                if frame.delay_timer > 0 {
-                    frame.delay_timer -= 1;
+                let timer_delta = match self.tick_duration {
+                    0 => delta,
+                    _ => self.tick_duration,
+                };
+
+                if frame.delay_timer.get() > 0 {
+                    let dt = frame.delay_timer.get_mut();
+                    *dt = dt.saturating_sub(timer_delta);
                 }
 
-                if frame.sound_timer > 0 {
-                    frame.sound_timer -= 1;
+                if frame.sound_timer.get() > 0 {
+                    let st = frame.sound_timer.get_mut();
+                    *st = st.saturating_sub(timer_delta);
 
-                    if frame.sound_timer == 0 {
+                    if frame.sound_timer.get() == 0 {
                         let mut audio = self.audio.lock().unwrap();
                         audio.playing = false;
                     }
@@ -287,8 +317,8 @@ impl Vm {
                     DebuggerCommand::PrintTimers => {
                         let frame = self.get_current_frame();
 
-                        println!("Delay Timer: {}", frame.delay_timer);
-                        println!("Sound Timer: {}", frame.sound_timer);
+                        println!("Delay Timer: Scaled: {} Raw: {}", frame.delay_timer.get_scaled(), frame.delay_timer.get());
+                        println!("Sound Timer: Scaled: {} Raw: {}", frame.sound_timer.get_scaled(), frame.sound_timer.get());
                     }
                 }
             };
@@ -477,8 +507,8 @@ impl Vm {
             OpCode::BitOp_Or { x, y }               => frame.registers[x] |= frame.registers[y],
             OpCode::BitOp_And { x, y }              => frame.registers[x] &= frame.registers[y],
             OpCode::BitOp_Xor { x, y }              => frame.registers[x] ^= frame.registers[y],
-            OpCode::BitOp_Shift_Right { x, y }      => self.op_right_shift(frame, y, x),
-            OpCode::BitOp_Shift_Left { x, y }       => self.op_left_shift(frame, y, x),
+            OpCode::BitOp_Shift_Right { x, .. }     => self.op_right_shift(frame, x, x),
+            OpCode::BitOp_Shift_Left { x, .. }      => self.op_left_shift(frame, x, x),
 
             OpCode::Math_Add { x, y }               => self.op_math_add(frame, x, y, x),
             OpCode::Math_Minus { x, y }             => self.op_math_minus(frame, x, y, x),
@@ -492,8 +522,8 @@ impl Vm {
 
             OpCode::BCD { x }                       => self.op_bcd(frame, frame.registers[x]),
 
-            OpCode::Timer_Delay_Get { x }           => frame.registers[x] = frame.delay_timer,
-            OpCode::Timer_Delay_Set { x }           => frame.delay_timer = frame.registers[x],
+            OpCode::Timer_Delay_Get { x }           => frame.registers[x] = frame.delay_timer.get_scaled(),
+            OpCode::Timer_Delay_Set { x }           => frame.delay_timer.set_scaled(frame.registers[x]),
 
             OpCode::Sound_Set { x }                 => self.op_sound_set(frame, frame.registers[x]),
 
@@ -518,7 +548,7 @@ impl Vm {
             audio.playing = true;
         }
 
-        frame.sound_timer = value;
+        frame.sound_timer.set_scaled(value);
     }
 
     fn op_await_key(&mut self, frame: &mut VmFrame, reg: usize) {
@@ -860,10 +890,10 @@ mod tests {
     #[test_case(0xA, 0xB, 0xA & 0xB, None, OpCode::BitOp_And { x: 0, y: 1 } ; "BitOp_And")]
     #[test_case(0xA, 0xB, 0xA ^ 0xB, None, OpCode::BitOp_Xor { x: 0, y: 1 } ; "BitOp_Xor")]
 
-    #[test_case(127, 0xFF, 0xFF >> 1, Some(1), OpCode::BitOp_Shift_Right { x: 0, y: 1 } ; "BitOp_Shift_Right 0xFF")]
-    #[test_case(5,   0xA,  0xA  >> 1, Some(0), OpCode::BitOp_Shift_Right { x: 0, y: 1 } ; "BitOp_Shift_Right 0xA")]
-    #[test_case(254, 0xFF, 0xFF << 1, Some(1), OpCode::BitOp_Shift_Left { x: 0, y: 1 } ; "BitOp_Shift_Left 0xFF")]
-    #[test_case(22,  0xB,  0xB  << 1, Some(0), OpCode::BitOp_Shift_Left { x: 0, y: 1 } ; "BitOp_Shift_Left 0xB")]
+    #[test_case(0xFF, 0xFF, 0xFF >> 1, Some(1), OpCode::BitOp_Shift_Right { x: 0, y: 1 } ; "BitOp_Shift_Right 0xFF")]
+    #[test_case(0xA,  0xA,  0xA  >> 1, Some(0), OpCode::BitOp_Shift_Right { x: 0, y: 1 } ; "BitOp_Shift_Right 0xA")]
+    #[test_case(0xFF, 0xFF, 0xFF << 1, Some(1), OpCode::BitOp_Shift_Left { x: 0, y: 1 } ; "BitOp_Shift_Left 0xFF")]
+    #[test_case(0xB,  0xB,  0xB  << 1, Some(0), OpCode::BitOp_Shift_Left { x: 0, y: 1 } ; "BitOp_Shift_Left 0xB")]
 
     // Math
     #[test_case(2, 8, 2 + 8, Some(0), OpCode::Math_Add { x: 0, y: 1 } ; "Math_Add no carry")]
@@ -957,7 +987,7 @@ mod tests {
     #[test]
     fn op_timer_delay_get() {
         let mut d = new();
-        d.frame.delay_timer = 8;
+        d.frame.delay_timer.set_scaled(8);
 
         d.vm.execute(&mut d.frame, OpCode::Timer_Delay_Get { x: 0 }).unwrap();
 
