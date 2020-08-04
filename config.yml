@@ -3,6 +3,7 @@
 # will be slower than the VM, so frame tearing is guaranteed
 hz: 2048
 beep_frequency: 440.0
+screen_scaling: 28
 rom: roms/INVADERS
 log_level: WARN
 

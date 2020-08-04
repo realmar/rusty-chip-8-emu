@@ -23,8 +23,6 @@ use vm::constants::*;
 use vm::input::Input;
 use vm::DebuggerCommand;
 
-const SCREEN_SCALING: f32 = 20.;
-
 fn main() {
     let config = Config::load().unwrap();
     let log_init_result = Logger::with(
@@ -39,9 +37,10 @@ fn main() {
         println!("ERROR initializing logger: {}", err);
     }
 
+    let screen_scaling = config.screen_scaling;
     let mut window_mode = ggez::conf::WindowMode::default();
-    window_mode.width = SCREEN_SIZE_X as f32 * SCREEN_SCALING;
-    window_mode.height = SCREEN_SIZE_Y as f32 * SCREEN_SCALING;
+    window_mode.width = SCREEN_SIZE_X as f32 * screen_scaling;
+    window_mode.height = SCREEN_SIZE_Y as f32 * screen_scaling;
 
     let mut window_setup = ggez::conf::WindowSetup::default();
     window_setup.title = String::from("CHIP8 Emulator");
@@ -118,6 +117,8 @@ impl Input for GGEZInput {
 
 struct Emulator {
     config: Config,
+    screen_scaling: f32,
+
     runner: Runner,
     input: Arc<Mutex<GGEZInput>>,
     beep: audio::Source,
@@ -129,6 +130,7 @@ impl Emulator {
 
         Emulator {
             beep: Emulator::create_beep(&config, _ctx),
+            screen_scaling: config.screen_scaling,
             config,
             input,
             runner,
@@ -212,10 +214,10 @@ impl EventHandler for Emulator {
                         builder.rectangle(
                             graphics::DrawMode::fill(),
                             graphics::Rect::new(
-                                (x + curr_pixel) as f32 * SCREEN_SCALING,
-                                y as f32 * SCREEN_SCALING,
-                                SCREEN_SCALING,
-                                SCREEN_SCALING,
+                                (x + curr_pixel) as f32 * self.screen_scaling,
+                                y as f32 * self.screen_scaling,
+                                self.screen_scaling,
+                                self.screen_scaling,
                             ),
                             graphics::WHITE,
                         );

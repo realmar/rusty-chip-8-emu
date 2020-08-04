@@ -36,6 +36,7 @@ pub struct GeneralKeyMapping {
 pub struct Config {
     pub hz: u128,
     pub beep_frequency: f64,
+    pub screen_scaling: f32,
     pub rom: String,
     pub general_key_mapping: GeneralKeyMapping,
     pub default_key_mapping: KeyMapping,
@@ -97,6 +98,7 @@ impl Default for Config {
         Config {
             hz: 60,
             beep_frequency: 440.,
+            screen_scaling: 20.,
             rom: String::from("roms/PONG2"),
             general_key_mapping: GeneralKeyMapping {
                 restart_vm: KeyCode::F5,
