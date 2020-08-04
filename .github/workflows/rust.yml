@@ -19,7 +19,15 @@ jobs:
     steps:
         - name: Install SDL2
           run: sudo apt-get install libsdl2-dev
+
         - uses: actions/checkout@v2
+
+        - name: Install latest nightly
+          uses: actions-rs/toolchain@v1
+          with:
+              toolchain: nightly
+              override: true
+
         - name: Build
           run: cargo build --verbose --release
         - name: Run tests
