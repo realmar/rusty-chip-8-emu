@@ -10,6 +10,9 @@ use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc;
 
+#[cfg(test)]
+use mocktopus::macros::*;
+
 use log::{trace, warn};
 
 use rand;
@@ -38,6 +41,11 @@ const REGISTER_COUNT: usize = 16;
 
 const PC_INCREMENT: u16 = 2;
 const PC_START: u16 = VM_INTERPRETER_SIZE as u16;
+
+#[cfg_attr(test, mockable)]
+fn get_random() -> u8 {
+    rand::random::<u8>()
+}
 
 #[derive(Display, Debug)]
 pub enum DebuggerCommand {
@@ -543,7 +551,7 @@ impl Vm {
     }
 
     fn op_rand(&mut self, frame: &mut VmFrame, reg: usize, mask: u8) {
-        let number: u8 = rand::random::<u8>();
+        let number: u8 = get_random();
         frame.registers[reg] = number & mask;
     }
 
@@ -662,6 +670,7 @@ mod tests {
     use super::display::MockDisplay;
     use super::input::MockInput;
     use mockall::*;
+    use mocktopus::mocking::*;
     use test_case::test_case;
 
     #[allow(dead_code)]
@@ -918,9 +927,11 @@ mod tests {
     fn op_rand() {
         let mut d = new();
 
+        get_random.mock_safe(|| MockResult::Return(28));
+
         d.vm.execute(&mut d.frame, OpCode::Rand { x: 0 , nn: 0xAB }).unwrap();
 
-        assert_ne!(d.frame.registers[0], 0);
+        assert_ne!(d.frame.registers[0], 28);
     }
 
     #[test_case(255, 0b0010, 0b0101, 0b0101)]
