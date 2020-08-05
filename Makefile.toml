@@ -1,7 +1,8 @@
-[tasks.rustc-version-nightly]
+[tasks.build]
 toolchain = "nightly"
-command = "rustc"
-args = [ "--version" ]
+
+[tasks.test]
+toolchain = "nightly"
 
 [tasks.format]
 disabled = true
