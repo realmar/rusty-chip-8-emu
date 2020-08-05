@@ -1,0 +1,33 @@
+[tasks.rustc-version-nightly]
+toolchain = "nightly"
+command = "rustc"
+args = [ "--version" ]
+
+[tasks.format]
+disabled = true
+
+[tasks.post-build]
+script_runner = "@rust"
+script = [
+'''
+//! ```cargo
+//! [dependencies]
+//! fs_extra = "*"
+//! ```
+
+extern crate fs_extra;
+
+use fs_extra::dir;
+use std::fs;
+
+fn main() {
+    fs::copy("config.yml", "target/debug/config.yml").unwrap();
+
+    let mut options = dir::CopyOptions::new();
+    options.overwrite = true;
+
+    dir::create_all("target/debug/roms", true).unwrap();
+    dir::copy("roms", "target/debug", &options).unwrap();
+}
+'''
+]
