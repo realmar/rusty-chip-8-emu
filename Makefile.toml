@@ -1,5 +1,15 @@
+[env.development]
+BUILD_ARGS = ""
+BUILD_DIR = "target/debug"
+
+[env.production]
+BUILD_ARGS = "--release"
+BUILD_DIR = "target/release"
+
 [tasks.build]
 toolchain = "nightly"
+command = "cargo"
+args = ["build", "--all-features", "${BUILD_ARGS}"]
 
 [tasks.test]
 toolchain = "nightly"
@@ -20,15 +30,18 @@ extern crate fs_extra;
 
 use fs_extra::dir;
 use std::fs;
+use std::env;
 
 fn main() {
-    fs::copy("config.yml", "target/debug/config.yml").unwrap();
+    let build_dir = env::var("BUILD_DIR").unwrap();
+
+    fs::copy("config.yml", format!("{}/config.yml", build_dir)).unwrap();
 
     let mut options = dir::CopyOptions::new();
     options.overwrite = true;
 
-    dir::create_all("target/debug/roms", true).unwrap();
-    dir::copy("roms", "target/debug", &options).unwrap();
+    dir::create_all(format!("{}/roms", build_dir), true).unwrap();
+    dir::copy("roms", build_dir, &options).unwrap();
 }
 '''
 ]

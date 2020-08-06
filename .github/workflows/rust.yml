@@ -47,18 +47,13 @@ jobs:
               uses: actions-rs/cargo@v1
               with:
                   command: make
-                  args: ci-flow
-
-            # - name: Build
-            #   run: cargo build --verbose --release
-            # - name: Run tests
-            #   run: cargo test --verbose
+                  args: ci-flow --profile production
 
             - name: Upload production binary
               uses: actions/upload-artifact@v2
               with:
                   name: rusty-release
                   path: |
-                      target/debug/rusty-chip-8-emu
-                      target/debug/config.yml
-                      target/debug/roms/
+                      target/release/rusty-chip-8-emu
+                      target/release/config.yml
+                      target/release/roms/
