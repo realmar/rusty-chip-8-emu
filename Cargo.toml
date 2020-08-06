@@ -1,5 +1,5 @@
 [package]
-name = "rusty-chip8-emu"
+name = "rusty-chip-8-emu"
 version = "0.1.0"
 authors = ["Anastassios Martakos <anastassios.martakos@outlook.com>"]
 edition = "2018"

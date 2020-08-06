@@ -1,0 +1,47 @@
+[env.development]
+BUILD_ARGS = "--all-features"
+BUILD_DIR = "target/debug"
+
+[env.production]
+BUILD_ARGS = "--all-features --release"
+BUILD_DIR = "target/release"
+
+[tasks.build]
+toolchain = "nightly"
+command = "cargo"
+args = ["build", "@@split(BUILD_ARGS, )"]
+
+[tasks.test]
+toolchain = "nightly"
+
+[tasks.format]
+disabled = true
+
+[tasks.post-build]
+script_runner = "@rust"
+script = [
+'''
+//! ```cargo
+//! [dependencies]
+//! fs_extra = "*"
+//! ```
+
+extern crate fs_extra;
+
+use fs_extra::dir;
+use std::fs;
+use std::env;
+
+fn main() {
+    let build_dir = env::var("BUILD_DIR").unwrap();
+
+    fs::copy("config.yml", format!("{}/config.yml", build_dir)).unwrap();
+
+    let mut options = dir::CopyOptions::new();
+    options.overwrite = true;
+
+    dir::create_all(format!("{}/roms", build_dir), true).unwrap();
+    dir::copy("roms", build_dir, &options).unwrap();
+}
+'''
+]

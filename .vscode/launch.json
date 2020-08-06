@@ -8,7 +8,7 @@
             "name": "(Windows) Launch",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/target/debug/rusty-chip8-emu.exe",
+            "program": "${workspaceFolder}/target/debug/rusty-chip-8-emu.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
