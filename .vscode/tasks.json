@@ -4,7 +4,7 @@
 		{
 			"label": "buildall",
 			"type": "shell",
-			"command": "cargo build",
+			"command": "cargo make build",
 			"options": {
 			  "cwd": "${workspaceRoot}"
 			},
@@ -16,7 +16,7 @@
         {
             "label": "tests",
 			"type": "shell",
-			"command": "cargo test",
+			"command": "cargo make test",
 			"options": {
 			  "cwd": "${workspaceRoot}"
 			},

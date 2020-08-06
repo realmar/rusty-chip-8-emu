@@ -59,6 +59,6 @@ jobs:
               with:
                   name: rusty-release
                   path: |
-                      target/release/rusty-chip-8-emu
-                      target/release/config.yml
-                      target/release/roms
+                      target/debug/rusty-chip-8-emu
+                      target/debug/config.yml
+                      target/debug/roms/
