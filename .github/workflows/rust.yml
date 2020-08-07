@@ -13,6 +13,12 @@ env:
     CARGO_TERM_COLOR: always
 
 jobs:
+    basic:
+        runs-on: ${{ matrix.os }}
+        strategy:
+          matrix:
+            os: [ macos-latest, ubuntu-latest, windows-latest ]
+
     build:
         runs-on: ubuntu-latest
 
