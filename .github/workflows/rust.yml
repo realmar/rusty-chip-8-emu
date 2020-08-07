@@ -53,7 +53,7 @@ jobs:
                   command: make
                   args: ci-flow --profile production
 
-            - name: Upload production binary
+            - name: Upload production binary Linux
               uses: actions/upload-artifact@v2
               with:
                   name: rusty-release
@@ -61,3 +61,15 @@ jobs:
                       target/release/rusty-chip-8-emu
                       target/release/config.yml
                       target/release/roms/
+              if: ${{ runner.os == 'Linux' }}
+
+            - name: Upload production binary Windows
+              uses: actions/upload-artifact@v2
+              with:
+                  name: rusty-release
+                  path: |
+                      target/release/rusty-chip-8-emu.exe
+                      target/release/rusty-chip-8-emu.pdb
+                      target/release/config.yml
+                      target/release/roms/
+              if: ${{ runner.os == 'Windows' }}
