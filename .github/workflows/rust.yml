@@ -56,7 +56,7 @@ jobs:
             - name: Upload production binary Linux
               uses: actions/upload-artifact@v2
               with:
-                  name: rusty-release
+                  name: rusty-release-linux
                   path: |
                       target/release/rusty-chip-8-emu
                       target/release/config.yml
@@ -66,7 +66,7 @@ jobs:
             - name: Upload production binary Windows
               uses: actions/upload-artifact@v2
               with:
-                  name: rusty-release
+                  name: rusty-release-windows
                   path: |
                       target/release/rusty-chip-8-emu.exe
                       target/release/rusty-chip-8-emu.pdb
