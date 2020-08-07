@@ -31,7 +31,7 @@ jobs:
 
             - name: Install SDL2
               run: sudo apt-get update && sudo apt-get install libsdl2-dev
-              if: ${{ runner.os == "Linux" }}
+              if: ${{ runner.os == 'Linux' }}
 
             - uses: actions/checkout@v2
 
