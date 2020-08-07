@@ -1,8 +1,13 @@
+
 Rusty CHIP-8  Emulator
 ----------------------
 
+[![Rust](https://github.com/realmar/rusty-chip-8-emu/workflows/build/badge.svg)](https://github.com/realmar/rusty-chip-8-emu/actions)
+
 CHIP-8 emulator written in Rust.
 
+ - Runs on Windows, Linux and MacOS
+   - Downloadable binaries can be found on the [GitHub Actions](https://github.com/realmar/rusty-chip-8-emu/actions) page
  - Configurable using `config.yml`
    - Emulator Speed
    - Screen Scaling
