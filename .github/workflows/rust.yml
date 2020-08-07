@@ -73,3 +73,11 @@ jobs:
                       target/release/config.yml
                       target/release/roms/
               if: ${{ runner.os == 'Windows' }}
+
+            - name: Upload production binary MacOS
+              uses: actions/upload-artifact@v2
+              with:
+                  name: rusty-release-macos
+                  path: |
+                      target/release
+              if: ${{ runner.os == 'macOS' }}
