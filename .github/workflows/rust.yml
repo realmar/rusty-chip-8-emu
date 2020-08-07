@@ -17,7 +17,7 @@ jobs:
         runs-on: ${{ matrix.os }}
         strategy:
             matrix:
-                os: [ ubuntu-latest, windows-latest ]
+                os: [ ubuntu-latest, windows-latest, macos-latest ]
 
         steps:
             - name: Cache
@@ -73,3 +73,13 @@ jobs:
                       target/release/config.yml
                       target/release/roms/
               if: ${{ runner.os == 'Windows' }}
+
+            - name: Upload production binary MacOS
+              uses: actions/upload-artifact@v2
+              with:
+                  name: rusty-release-macos
+                  path: |
+                    target/release/rusty-chip-8-emu
+                    target/release/config.yml
+                    target/release/roms/
+              if: ${{ runner.os == 'macOS' }}
