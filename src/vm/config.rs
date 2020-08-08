@@ -48,9 +48,8 @@ pub struct Config {
 impl Config {
     pub fn load() -> Result<Config, Box<dyn Error + 'static>> {
         const PATH: &'static str = "config.yml";
-        let read_result = fs::read_to_string(PATH);
 
-        match read_result {
+        match fs::read_to_string(PATH) {
             Ok(yaml) => Ok(serde_yaml::from_str::<Config>(&yaml)?),
             Err(..) => {
                 let config = Config::default();
@@ -65,7 +64,7 @@ impl Config {
         }
     }
 
-    pub fn get_rom_keymapping(&self) -> Option<&KeyMapping> {
+    pub fn get_rom_key_mapping(&self) -> Option<&KeyMapping> {
         let filename = Path::new(&self.rom).file_name()?.to_str()?;
         self.rom_key_mappings.get(filename)
     }
@@ -99,7 +98,7 @@ impl Default for Config {
             hz: 60,
             beep_frequency: 440.,
             screen_scaling: 20.,
-            rom: String::from("roms/PONG2"),
+            rom: String::from("roms/INVADERS"),
             general_key_mapping: GeneralKeyMapping {
                 restart_vm: KeyCode::F5,
             },

@@ -21,3 +21,21 @@ pub const FONTS: [u8; 80] = [
     0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
     0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 ];
+
+pub(super) const VM_ORIGINAL_HZ: u128 = 60;
+
+pub(super) const VM_INTERPRETER_SIZE: usize = 512;
+pub(super) const VM_DISPLAY_REFRESH_SIZE: usize = 256;
+pub(super) const VM_INTERNAL_SIZE: usize = 96;
+
+pub(super) const VM_RESERVED_BEGIN: usize = VM_INTERPRETER_SIZE;
+pub(super) const VM_RESERVED_END: usize = VM_DISPLAY_REFRESH_SIZE + VM_INTERNAL_SIZE;
+
+pub(super) const MEMORY_SIZE: usize = 1024 * 4;
+pub(super) const ROM_SIZE: usize = MEMORY_SIZE - VM_RESERVED_BEGIN - VM_RESERVED_END;
+pub(super) const REGISTER_COUNT: usize = 16;
+
+pub(super) const PC_INCREMENT: u16 = 2;
+pub(super) const PC_START: u16 = VM_INTERPRETER_SIZE as u16;
+
+pub(super) const TIMER_DURATION_NANO: u128 = u128::pow(10, 9) / VM_ORIGINAL_HZ;

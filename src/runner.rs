@@ -1,18 +1,21 @@
+use std::fs;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
 use std::sync::mpsc::{channel, Sender};
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::thread::JoinHandle;
 use std::time::Instant;
-use std::fs;
 
-use log::{info, warn, error};
+use log::{error, info, warn};
 
 use super::vm::audio::Audio;
-use super::vm::display::{ Display, VmDisplay };
-use super::vm::input::Input;
 use super::vm::config::Config;
-use super::vm::{Vm, Debugger, DebuggerCommand};
+use super::vm::display::{Display, VmDisplay};
+use super::vm::input::Input;
+use super::vm::{
+    debugger::{Debugger, DebuggerCommand},
+    Vm,
+};
 
 pub struct Runner {
     display: Arc<Mutex<dyn Display>>,
@@ -42,7 +45,14 @@ impl Runner {
         let debugger = Debugger::new(config, debug_break.clone(), rx);
 
         let thread_alive = alive.clone();
-        match Vm::new(config, &rom_bytes, display.clone(), input.clone(), audio.clone(), debugger) {
+        match Vm::new(
+            config,
+            &rom_bytes,
+            display.clone(),
+            input.clone(),
+            audio.clone(),
+            debugger,
+        ) {
             Ok(mut vm) => {
                 info!("Starting VM ...");
 

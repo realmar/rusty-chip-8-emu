@@ -1,6 +1,6 @@
 #[cfg(test)]
 use mockall::automock;
-use super::constants::*;
+use super::constants::{SCREEN_SIZE, SCREEN_SIZE_X};
 
 pub type RawScreen = [u8; SCREEN_SIZE];
 
@@ -25,7 +25,7 @@ impl VmDisplay {
     }
 }
 
-impl Display for  VmDisplay {
+impl Display for VmDisplay {
     fn get_screen(&self) -> &RawScreen {
         &self.screen
     }
