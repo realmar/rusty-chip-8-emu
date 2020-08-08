@@ -32,7 +32,7 @@ impl Runner {
     pub fn new(config: &Config, input: Arc<Mutex<dyn Input>>) -> Result<Runner, String> {
         let rom_bytes = match fs::read(&config.rom) {
             Ok(bytes) => bytes,
-            Err(..) => return Err(format!("Cannot load ROM {}", config.rom)),
+            Err(msg) => return Err(format!("Cannot load ROM {} error: {}", config.rom, msg)),
         };
 
         let display = Arc::new(Mutex::new(VmDisplay::new()));

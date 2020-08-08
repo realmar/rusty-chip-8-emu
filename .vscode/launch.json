@@ -15,7 +15,7 @@
             "environment": [
                 {
                     "name": "RUST_BACKTRACE",
-                    "value": "0"
+                    "value": "1"
                 }
             ],
             "externalConsole": false,

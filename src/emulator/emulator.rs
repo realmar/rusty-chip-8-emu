@@ -26,45 +26,41 @@ pub struct Emulator {
 }
 
 impl Emulator {
-    pub fn new(_ctx: &mut Context, config: Config) -> Emulator {
-        let (input, runner) = Emulator::create_runner(&config);
+    pub fn new(ctx: &mut Context, config: Config) -> Result<Emulator, String> {
+        let (input, runner) = Emulator::create_runner(&config)?;
 
-        Emulator {
-            beep: Emulator::create_beep(&config, _ctx),
+        Ok(Emulator {
+            beep: Emulator::create_beep(&config, ctx)?,
             screen_scaling: config.screen_scaling,
             config,
             input,
             runner,
-        }
+        })
     }
 
-    fn create_runner(config: &Config) -> (Arc<Mutex<GGEZInput>>, Runner) {
+    fn create_runner(config: &Config) -> Result<(Arc<Mutex<GGEZInput>>, Runner), String> {
         let input = Arc::new(Mutex::new(GGEZInput::new(&config)));
-        let runner = match Runner::new(&config, input.clone()) {
-            Ok(runner) => runner,
-            Err(err) => panic!("ERROR creating VM: {}", err),
-        };
-
-        (input, runner)
+        Ok((input.clone(), Runner::new(&config, input.clone())?))
     }
 
-    fn create_beep(config: &Config, ctx: &mut Context) -> audio::Source {
-        let sound_bytes = match vm_audio::sample(config.beep_frequency) {
-            Ok(waveform) => waveform,
-            Err(msg) => panic!("ERROR while generating sound waveform: {}", msg),
-        };
-
-        audio::Source::from_data(ctx, audio::SoundData::from_bytes(sound_bytes.as_slice())).unwrap()
+    fn create_beep(config: &Config, ctx: &mut Context) -> Result<audio::Source, String> {
+        let sound_bytes = vm_audio::sample(config.beep_frequency)?;
+        Ok(audio::Source::from_data(ctx, audio::SoundData::from_bytes(sound_bytes.as_slice())).unwrap())
     }
 
-    fn reset(&mut self, ctx: &mut Context) {
-        let config = Config::load().unwrap();
-        let (input, runner) = Emulator::create_runner(&config);
+    fn reset(&mut self, ctx: &mut Context) -> Result<(), String> {
+        let config = match Config::load() {
+            Ok(c) => c,
+            Err(err) => return Err(format!("{}", err)),
+        };
+        let (input, runner) = Emulator::create_runner(&config)?;
 
-        self.beep = Emulator::create_beep(&config, ctx);
+        self.beep = Emulator::create_beep(&config, ctx)?;
         self.config = config;
         self.input = input;
         self.runner = runner;
+
+        Ok(())
     }
 }
 
@@ -145,7 +141,9 @@ impl EventHandler for Emulator {
         let no_shift = (_keymods & KeyMods::SHIFT) != KeyMods::SHIFT;
 
         if _keycode == self.config.general_key_mapping.restart_vm {
-            self.reset(_ctx);
+            if let Err(msg) = self.reset(_ctx) {
+                error!("ERROR resetting VM: {}", msg);
+            }
         }
 
         if self.config.debugger.enable {
