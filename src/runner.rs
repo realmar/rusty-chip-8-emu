@@ -6,18 +6,18 @@ use std::thread;
 use std::thread::JoinHandle;
 use std::time::Instant;
 
-use log::{error, info, warn};
 use anyhow::Result;
+use log::{error, info, warn};
 
-use crate::errors::Errors;
-use super::vm::audio::Audio;
-use super::vm::config::Config;
-use super::vm::display::{Display, VmDisplay};
-use super::vm::input::Input;
 use super::vm::{
+    audio::Audio,
+    config::Config,
     debugger::{Debugger, DebuggerCommand},
+    display::{Display, VmDisplay, Snapshot},
+    input::Input,
     Vm,
 };
+use crate::errors::Errors;
 
 pub struct Runner {
     display: Arc<Mutex<dyn Display>>,
@@ -34,7 +34,13 @@ impl Runner {
     pub fn new(config: &Config, input: Arc<Mutex<dyn Input>>) -> Result<Runner> {
         let rom_bytes = match fs::read(&config.rom) {
             Ok(bytes) => bytes,
-            Err(err) => return Err(Errors::RomLoadFailed { name: config.rom.clone(), error: err }.into()),
+            Err(err) => {
+                return Err(Errors::RomLoadFailed {
+                    name: config.rom.clone(),
+                    error: err,
+                }
+                .into())
+            }
         };
 
         let display = Arc::new(Mutex::new(VmDisplay::new()));
@@ -85,9 +91,9 @@ impl Runner {
         }
     }
 
-    pub fn get_pixel(&self, x: usize, y: usize) -> u8 {
+    pub fn get_display_snapshot(&self) -> Snapshot {
         let display = self.display.lock().unwrap();
-        display.get_pixel(x, y)
+        display.get_snapshot()
     }
 
     pub fn is_playing_sound(&self) -> bool {

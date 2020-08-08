@@ -4,8 +4,14 @@ use super::constants::{SCREEN_SIZE, SCREEN_SIZE_X};
 
 pub type RawScreen = [u8; SCREEN_SIZE];
 
-pub struct VmDisplay {
+pub struct Snapshot {
     screen: RawScreen,
+}
+
+impl Snapshot {
+    pub fn get_pixel(&self, x: usize, y: usize) -> u8 {
+        self.screen[x + y * SCREEN_SIZE_X]
+    }
 }
 
 #[cfg_attr(test, automock)]
@@ -14,7 +20,11 @@ pub trait Display : Send {
     fn set_screen(&mut self, screen: &RawScreen);
     fn clear(&mut self);
     fn draw_sprite(&mut self, x: usize, y: usize, height: u8, data: &[u8]) -> DisplayState;
-    fn get_pixel(&self, x: usize, y: usize) -> u8;
+    fn get_snapshot(&self) -> Snapshot;
+}
+
+pub struct VmDisplay {
+    screen: RawScreen,
 }
 
 impl VmDisplay {
@@ -64,8 +74,10 @@ impl Display for VmDisplay {
         state
     }
 
-    fn get_pixel(&self, x: usize, y: usize) -> u8 {
-        self.screen[x + y * SCREEN_SIZE_X]
+    fn get_snapshot(&self) -> Snapshot {
+        Snapshot {
+            screen: self.screen.clone(),
+        }
     }
 }
 

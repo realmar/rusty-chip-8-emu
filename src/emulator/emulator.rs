@@ -95,11 +95,12 @@ impl EventHandler for Emulator {
     fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
         let mut has_items = false;
         let mut builder = graphics::MeshBuilder::new();
+        let snapshot = self.runner.get_display_snapshot();
 
         for y in 0..SCREEN_SIZE_Y {
             for x in 0..SCREEN_SIZE_X {
                 let mut curr_pixel = 0;
-                let pixel_byte = self.runner.get_pixel(x, y);
+                let pixel_byte = snapshot.get_pixel(x, y);
 
                 for n in 0..8 {
                     let mask = 1 << n;

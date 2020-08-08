@@ -1,6 +1,5 @@
 ---
-# hz = 0 will let the emu run as fast as possible, note that the rendering loop
-# will be slower than the VM, so frame tearing is guaranteed
+# hz = 0 will let the emu run as fast as possible
 hz: 2048
 beep_frequency: 440.0
 screen_scaling: 28
