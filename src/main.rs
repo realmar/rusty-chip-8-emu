@@ -1,6 +1,7 @@
 #![feature(const_int_pow)]
 #![cfg_attr(test, feature(proc_macro_hygiene))]
 
+mod errors;
 mod emulator;
 mod runner;
 mod vm;
@@ -89,8 +90,8 @@ fn main() {
 
             match Emulator::new(&mut ctx, config) {
                 Ok(emulator) => run(ctx, event_loop, emulator),
-                Err(msg) => {
-                    run(ctx, event_loop, ErrorWindow::new(msg));
+                Err(err) => {
+                    run(ctx, event_loop, ErrorWindow::new(format!("{}", err)));
                 }
             };
         }

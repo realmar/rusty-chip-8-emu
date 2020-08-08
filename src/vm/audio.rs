@@ -1,6 +1,7 @@
 use std::io::{Cursor, Read, Seek, SeekFrom};
 use std::vec::Vec;
 
+use anyhow::Result;
 use twang::Sound;
 use wav;
 
@@ -18,7 +19,7 @@ impl Audio {
     }
 }
 
-pub fn sample(hz: f64) -> Result<Vec<u8>, String> {
+pub fn sample(hz: f64) -> Result<Vec<u8>> {
     // 48hz sampling rate
     let sampling_rate = 48000.0;
 
@@ -30,22 +31,15 @@ pub fn sample(hz: f64) -> Result<Vec<u8>, String> {
 
     let mut writer = Cursor::new(Vec::<u8>::new());
 
-    if let Err(err) = wav::write(
+    wav::write(
         wav::Header::new(1, 1, sampling_rate as u32, 16),
         wav::BitDepth::Sixteen(wave),
         &mut writer,
-    ) {
-        Err(String::from(format!("Failed to write waveform: {}", err)))
-    } else {
-        let mut out = Vec::new();
-        if let Err(err) = writer.seek(SeekFrom::Start(0)) {
-            Err(String::from(format!("Failed to seek waveform: {}", err)))
-        } else {
-            if let Err(err) = writer.read_to_end(&mut out) {
-                Err(String::from(format!("Failed to convert waveform to wav: {}", err)))
-            } else {
-                Ok(out)
-            }
-        }
-    }
+    )?;
+
+    let mut out = Vec::new();
+    writer.seek(SeekFrom::Start(0))?;
+    writer.read_to_end(&mut out)?;
+
+    Ok(out)
 }

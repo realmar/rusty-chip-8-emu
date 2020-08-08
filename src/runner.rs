@@ -7,7 +7,9 @@ use std::thread::JoinHandle;
 use std::time::Instant;
 
 use log::{error, info, warn};
+use anyhow::Result;
 
+use crate::errors::Errors;
 use super::vm::audio::Audio;
 use super::vm::config::Config;
 use super::vm::display::{Display, VmDisplay};
@@ -29,10 +31,10 @@ pub struct Runner {
 }
 
 impl Runner {
-    pub fn new(config: &Config, input: Arc<Mutex<dyn Input>>) -> Result<Runner, String> {
+    pub fn new(config: &Config, input: Arc<Mutex<dyn Input>>) -> Result<Runner> {
         let rom_bytes = match fs::read(&config.rom) {
             Ok(bytes) => bytes,
-            Err(msg) => return Err(format!("Cannot load ROM {} error: {}", config.rom, msg)),
+            Err(err) => return Err(Errors::RomLoadFailed { name: config.rom.clone(), error: err }.into()),
         };
 
         let display = Arc::new(Mutex::new(VmDisplay::new()));

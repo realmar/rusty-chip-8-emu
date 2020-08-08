@@ -5,9 +5,11 @@ use std::sync::atomic::Ordering;
 #[cfg(test)]
 use mocktopus::macros::*;
 
+use anyhow::Result;
 use log::{trace, warn};
-
 use rand;
+
+use crate::errors::Errors;
 
 use super::display::{Display, DisplayState, RawScreen};
 use super::audio::Audio;
@@ -86,13 +88,13 @@ impl Vm {
         display: Arc<Mutex<dyn Display>>,
         input: Arc<Mutex<dyn Input>>,
         audio: Arc<Mutex<Audio>>,
-        debugger: Debugger) -> Result<Vm, String> {
+        debugger: Debugger) -> Result<Vm> {
         let result;
 
         if rom.len() == 0 {
-            result = Err(String::from("ROM is empty"));
+            result = Err(Errors::RomEmpty.into());
         } else if rom.len() > ROM_SIZE {
-            result = Err(format!("ROM size too big {} max is {}", rom.len(), ROM_SIZE));
+            result = Err(Errors::RomTooBig { size: rom.len(), max: ROM_SIZE }.into());
         } else {
             let mut memory = [0u8; MEMORY_SIZE];
             let rom_slice = &mut memory[VM_RESERVED_BEGIN..rom.len() + VM_RESERVED_BEGIN];
@@ -143,7 +145,7 @@ impl Vm {
     }
 
     // delta in nanoseconds
-    pub fn tick(&mut self, delta: u128) -> Result<(), String> {
+    pub fn tick(&mut self, delta: u128) -> Result<()> {
         let mut result = Ok(());
 
         if self.tick_timer > self.tick_duration {
@@ -407,7 +409,7 @@ impl Vm {
         frame.registers[0xF] = value;
     }
 
-    fn execute(&mut self, frame: &mut VmFrame, code: OpCode) -> Result<(), String> {
+    fn execute(&mut self, frame: &mut VmFrame, code: OpCode) -> Result<()> {
         let mut result = Ok(());
 
         trace!("Executing {:?}", code);
@@ -581,10 +583,10 @@ impl Vm {
         frame.PC = address;
     }
 
-    fn op_return(&mut self, vm_frame: &mut VmFrame) -> Result<(), String> {
+    fn op_return(&mut self, vm_frame: &mut VmFrame) -> Result<()> {
         match vm_frame.stack.pop() {
             Some(frame) => { vm_frame.PC = frame.return_address; Ok(()) }
-            None => Err(String::from("Unable to pop stack because stack is empty. Fatal Error.")),
+            None => Err(Errors::StackEmpty.into()),
         }
     }
 

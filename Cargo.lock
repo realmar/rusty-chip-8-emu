@@ -72,6 +72,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "000444226fcff248f2bc4c7625be32c63caccfecc2723a2b9f78a7487a49c407"
 
 [[package]]
+name = "anyhow"
+version = "1.0.32"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6b602bfe940d21c130f3895acd65221e8a61270debe89d628b9cb4e3ccb8569b"
+
+[[package]]
 name = "approx"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1961,6 +1967,7 @@ dependencies = [
 name = "rusty-chip-8-emu"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "cfg-if",
  "flexi_logger",
  "ggez",
@@ -1973,6 +1980,7 @@ dependencies = [
  "strum",
  "strum_macros",
  "test-case",
+ "thiserror",
  "twang",
  "wav",
  "winit",

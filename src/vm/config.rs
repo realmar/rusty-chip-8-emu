@@ -3,11 +3,11 @@ use ggez::input::keyboard::KeyCode;
 use serde::{Deserialize, Serialize};
 
 use std::collections::HashMap;
-use std::error::Error;
 use std::fs;
 use std::path::Path;
 
 use log::{LevelFilter, warn};
+use anyhow::Result;
 
 pub type KeyMapping = HashMap<KeyCode, u8>;
 
@@ -46,7 +46,7 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn load() -> Result<Config, Box<dyn Error + 'static>> {
+    pub fn load() -> Result<Config> {
         const PATH: &'static str = "config.yml";
 
         match fs::read_to_string(PATH) {

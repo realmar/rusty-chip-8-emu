@@ -19,6 +19,8 @@ strum_macros = "0.18.0"
 log = { version = "0.4.11", features = ["serde"] }
 flexi_logger = "0.15.10"
 cfg-if = "0.1.10"
+anyhow = "1.0.32"
+thiserror = "1.0.20"
 
 [dev-dependencies]
 test-case = "1.0.0"

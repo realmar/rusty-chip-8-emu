@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use log::error;
+use anyhow::Result;
 
 use ggez::audio;
 use ggez::audio::SoundSource;
@@ -26,7 +27,7 @@ pub struct Emulator {
 }
 
 impl Emulator {
-    pub fn new(ctx: &mut Context, config: Config) -> Result<Emulator, String> {
+    pub fn new(ctx: &mut Context, config: Config) -> Result<Emulator> {
         let (input, runner) = Emulator::create_runner(&config)?;
 
         Ok(Emulator {
@@ -38,21 +39,18 @@ impl Emulator {
         })
     }
 
-    fn create_runner(config: &Config) -> Result<(Arc<Mutex<GGEZInput>>, Runner), String> {
+    fn create_runner(config: &Config) -> Result<(Arc<Mutex<GGEZInput>>, Runner)> {
         let input = Arc::new(Mutex::new(GGEZInput::new(&config)));
         Ok((input.clone(), Runner::new(&config, input.clone())?))
     }
 
-    fn create_beep(config: &Config, ctx: &mut Context) -> Result<audio::Source, String> {
+    fn create_beep(config: &Config, ctx: &mut Context) -> Result<audio::Source> {
         let sound_bytes = vm_audio::sample(config.beep_frequency)?;
         Ok(audio::Source::from_data(ctx, audio::SoundData::from_bytes(sound_bytes.as_slice())).unwrap())
     }
 
-    fn reset(&mut self, ctx: &mut Context) -> Result<(), String> {
-        let config = match Config::load() {
-            Ok(c) => c,
-            Err(err) => return Err(format!("{}", err)),
-        };
+    fn reset(&mut self, ctx: &mut Context) -> Result<()> {
+        let config = Config::load()?;
         let (input, runner) = Emulator::create_runner(&config)?;
 
         self.beep = Emulator::create_beep(&config, ctx)?;
