@@ -30,19 +30,19 @@ pub fn sample(hz: f64) -> Result<Vec<u8>, String> {
 
     let mut writer = Cursor::new(Vec::<u8>::new());
 
-    if let Err(..) = wav::write(
+    if let Err(err) = wav::write(
         wav::Header::new(1, 1, sampling_rate as u32, 16),
         wav::BitDepth::Sixteen(wave),
         &mut writer,
     ) {
-        Err(String::from("Failed to write waveform"))
+        Err(String::from(format!("Failed to write waveform: {}", err)))
     } else {
         let mut out = Vec::new();
-        if let Err(..) = writer.seek(SeekFrom::Start(0)) {
-            Err(String::from("Failed to seek waveform"))
+        if let Err(err) = writer.seek(SeekFrom::Start(0)) {
+            Err(String::from(format!("Failed to seek waveform: {}", err)))
         } else {
-            if let Err(..) = writer.read_to_end(&mut out) {
-                Err(String::from("Failed to convert waveform to wav"))
+            if let Err(err) = writer.read_to_end(&mut out) {
+                Err(String::from(format!("Failed to convert waveform to wav: {}", err)))
             } else {
                 Ok(out)
             }
