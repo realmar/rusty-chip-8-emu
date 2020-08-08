@@ -628,15 +628,19 @@ impl Vm {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::display::MockDisplay;
-    use super::input::MockInput;
+    use super::super::display::MockDisplay;
+    use super::super::input::MockInput;
+
+    use std::sync::atomic::AtomicBool;
+    use std::sync::mpsc::{channel, Sender};
+
     use mockall::*;
     use mocktopus::mocking::*;
     use test_case::test_case;
 
     #[allow(dead_code)]
     struct TestData {
-        tx: mpsc::Sender::<DebuggerCommand>,
+        tx: Sender::<DebuggerCommand>,
         vm: Vm,
         frame: VmFrame,
 
@@ -646,7 +650,7 @@ mod tests {
 
     fn new() -> TestData {
         let config = Config::default();
-        let (tx, rx) = mpsc::channel::<DebuggerCommand>();
+        let (tx, rx) = channel::<DebuggerCommand>();
 
         let display = Arc::new(Mutex::new(MockDisplay::new()));
         let input = Arc::new(Mutex::new(MockInput::new()));
